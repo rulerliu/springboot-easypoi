@@ -5,7 +5,7 @@ import cn.afterturn.easypoi.excel.ExcelImportUtil;
 import cn.afterturn.easypoi.excel.entity.ExportParams;
 import cn.afterturn.easypoi.excel.entity.ImportParams;
 import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
-import org.apache.commons.lang3.StringUtils;
+import cn.afterturn.easypoi.excel.export.ExcelBatchExportServer;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -45,7 +46,7 @@ public class ExcelUtils {
         downLoadExcel(fileName, response, workbook);
     }
 
-    private static void downLoadExcel(String fileName, HttpServletResponse response, Workbook workbook) {
+    public static void downLoadExcel(String fileName, HttpServletResponse response, Workbook workbook) {
         try {
             response.setCharacterEncoding("UTF-8");
             response.setHeader("content-Type", "application/vnd.ms-excel");
@@ -63,7 +64,11 @@ public class ExcelUtils {
     }
 
     public static <T> List<T> importExcel(String filePath, Integer titleRows, Integer headerRows, Class<T> pojoClass){
-        if (StringUtils.isBlank(filePath)){
+        return importExcel(new File(filePath), titleRows, headerRows, pojoClass);
+    }
+
+    public static <T> List<T> importExcel(File file, Integer titleRows, Integer headerRows, Class<T> pojoClass){
+        if (file == null){
             return null;
         }
         ImportParams params = new ImportParams();
@@ -71,7 +76,7 @@ public class ExcelUtils {
         params.setHeadRows(headerRows);
         List<T> list = null;
         try {
-            list = ExcelImportUtil.importExcel(new File(filePath), pojoClass, params);
+            list = ExcelImportUtil.importExcel(file, pojoClass, params);
         }catch (NoSuchElementException e){
             // throw new NormalException("模板不能为空");
         } catch (Exception e) {
@@ -96,6 +101,29 @@ public class ExcelUtils {
             // throw new NormalException(e.getMessage());
         }
         return list;
+    }
+
+
+    /**
+     * 大批量数据导出
+     * @param entity
+     *            表格标题属性
+     * @param pojoClass
+     *            Excel对象Class
+     * @param dataSet
+     *            Excel对象数据List
+     */
+    public static Workbook exportBigExcel(ExportParams entity, Class<?> pojoClass,
+                                          Collection<?> dataSet) {
+        ExcelBatchExportServer batachServer = ExcelBatchExportServer
+                .getExcelBatchExportServer(entity, pojoClass);
+        return batachServer.appendData(dataSet);
+    }
+
+    public static void closeExportBigExcel() {
+        ExcelBatchExportServer batachServer = ExcelBatchExportServer.getExcelBatchExportServer(null,
+                null);
+        batachServer.closeExportBigExcel();
     }
 
 }
